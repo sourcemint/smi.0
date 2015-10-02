@@ -1,0 +1,107 @@
+#!/usr/bin/env node
+
+var LIB = {
+    yargs: require('yargs'),
+    assert: require("assert"),
+    glob: require("glob"),
+    path: require("path"),
+    Promise: require("bluebird"),
+    throat: require("throat"),
+    fs: require("fs-extra"),
+    request: require("request"),
+    semver: require("semver"),
+    child_process: require("child_process"),
+    _: require("lodash"),
+    CJSON: require("canonical-json"),
+    jsonlint: require("jsonlint")
+};
+LIB.Promise.promisifyAll(LIB.fs);
+LIB.Promise.promisifyAll(LIB.glob);
+LIB.Promise.promisifyAll(LIB.request);
+LIB.util = require("../lib/util").forLib(LIB);
+
+
+var FACTORIES = {
+    smiDescriptor: require("../lib/descriptor-smi").forLib(LIB),
+    npmDescriptor: require("../lib/descriptor-npm").forLib(LIB),
+    scanner: require("../lib/scanner").forLib(LIB),
+    gatherer: require("../lib/gatherer").forLib(LIB)
+}
+
+
+function main (callback) {
+    return LIB.Promise.try(function () {
+
+        var argv = LIB.yargs
+            .usage('Usage: $0 <command> [options]')
+            .command('freeze', "Freeze all dependencies by writing them to the 'smi.0.json' descriptor file", function (yargs) {
+                argv = yargs.option('library-package', {
+                    describe: "The package to write gathered packaes to",
+                    type: 'string',
+                    demand: true
+                })
+                .help('help')
+                .argv
+            })
+            .demand(1)
+            .argv
+
+
+        var command = argv._[0];
+
+        if (command === "freeze-latest") {
+
+            var smiDescriptor = FACTORIES.smiDescriptor(
+                 LIB.path.join(process.cwd(), "smi.0.json")
+            );
+
+            return smiDescriptor.getPackages().then(function (packages) {
+
+                var scanner = FACTORIES.scanner(smiDescriptor);
+
+                return scanner.scan({
+                    packages: packages
+                }).then(function () {
+
+                    return smiDescriptor.setPackages(
+                        scanner.getPackages()
+                    ).then(function () {
+
+                        return smiDescriptor.setSubmodules(
+                            scanner.getSubmodules()
+                        );
+                    });
+                });
+            }).then(function () {
+
+                var gatherer = FACTORIES.gatherer(smiDescriptor);
+
+                return gatherer.gatherPackages().then(function () {
+
+                    var npmDescriptor = FACTORIES.npmDescriptor(
+                        LIB.path.join(
+                             process.cwd(),
+                             argv["library-package"],
+                             "package.json"
+                        )
+                    );
+
+                    return npmDescriptor.setPackages(
+                        gatherer.getPublishedPackages()
+                    );
+                });
+            });
+        }
+
+        throw new Error("Command '" + command + "' not found!");
+    });
+}
+
+if (require.main === module) {
+    main().then(function () {
+        process.exit(0);
+    }).catch(function (err) {
+        console.error("ERROR:", err.stack);
+        process.exit(1);
+    });
+}

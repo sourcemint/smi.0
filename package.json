@@ -1,0 +1,19 @@
+{
+  "name": "smi.0",
+  "version": "0.0.1",
+  "bin": {
+    "smi.0": "bin/smi.0"
+  },
+  "dependencies": {
+    "bluebird": "^2.10.1",
+    "canonical-json": "0.0.4",
+    "fs-extra": "^0.24.0",
+    "glob": "^5.0.15",
+    "jsonlint": "^1.6.2",
+    "lodash": "^3.10.1",
+    "request": "^2.64.0",
+    "semver": "^5.0.3",
+    "throat": "^2.0.2",
+    "yargs": "^3.26.0"
+  }
+}
