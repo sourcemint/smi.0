@@ -25,7 +25,8 @@ var FACTORIES = {
     smiDescriptor: require("../lib/descriptor-smi").forLib(LIB),
     npmDescriptor: require("../lib/descriptor-npm").forLib(LIB),
     scanner: require("../lib/scanner").forLib(LIB),
-    gatherer: require("../lib/gatherer").forLib(LIB)
+    gatherer: require("../lib/gatherer").forLib(LIB),
+    actor: require("../lib/actor").forLib(LIB)
 }
 
 
@@ -92,6 +93,23 @@ function main (callback) {
                         gatherer.getPublishedPackages()
                     );
                 });
+            });
+        } else
+        if (command === "checkout-submodule-branches") {
+
+            var smiDescriptor = FACTORIES.smiDescriptor(
+                 LIB.path.join(process.cwd(), "smi.0.json")
+            );
+
+            var scanner = FACTORIES.scanner(smiDescriptor);
+
+            var actor = FACTORIES.actor(smiDescriptor);
+
+            return scanner.scanSubmodules().then(function () {
+
+                return actor.checkoutSubmoduleBranches(
+                    scanner.getSubmodules()
+                );
             });
         }
 
