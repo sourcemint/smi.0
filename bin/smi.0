@@ -74,6 +74,8 @@ function main (callback) {
                 });
             }).then(function () {
 
+                if (!argv["library-package"]) return;
+
                 var gatherer = FACTORIES.gatherer(smiDescriptor);
 
                 return gatherer.gatherPackages().then(function () {
